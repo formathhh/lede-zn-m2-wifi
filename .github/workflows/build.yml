@@ -44,14 +44,10 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Load custom config
-        working-directory: /workdir/openwrt
-        run: |
-          [ -f .config ] && cp .config .config.bak || true
-
       - name: Generate config
         working-directory: /workdir/openwrt
         run: |
+          cp .config .config.bak
           make defconfig
 
       - name: Download package
@@ -62,7 +58,7 @@ jobs:
       - name: Compile the firmware
         working-directory: /workdir/openwrt
         run: |
-          make -j$(nproc) V=s
+          make -j$(nproc) V=s || make -j1 V=s
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
