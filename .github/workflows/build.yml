@@ -2,9 +2,6 @@ name: Build ZN-M2 OpenWrt
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - zn-m2-wifi
 
 jobs:
   build:
@@ -38,11 +35,10 @@ jobs:
             https://github.com/formathhh/lede-zn-m2-wifi.git openwrt
           echo "OPENWRT_PATH=/workdir/openwrt" >> $GITHUB_ENV
 
-      - name: Add passwall feeds
+      - name: Prepare feeds
         working-directory: /workdir/openwrt
         run: |
-          sed -i '1i src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main' feeds.conf.default
-          sed -i '1i src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main' feeds.conf.default
+          sed -i 's|^src-git telephony|#src-git telephony|' feeds.conf.default
           cat feeds.conf.default
 
       - name: Update feeds
@@ -55,23 +51,7 @@ jobs:
         working-directory: /workdir/openwrt
         run: |
           cp .config .config.bak
-          make defconfig
-          echo "CONFIG_PACKAGE_luci-app-passwall=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall_Iptables_Transparent_Proxy=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Xray=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_SingBox=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Haproxy=y" >> .config
-          echo "CONFIG_PACKAGE_xray-core=y" >> .config
-          echo "CONFIG_PACKAGE_sing-box=y" >> .config
-          echo "CONFIG_PACKAGE_chinadns-ng=y" >> .config
-          echo "CONFIG_PACKAGE_haproxy=y" >> .config
-          echo "CONFIG_PACKAGE_dns2socks=y" >> .config
-          echo "CONFIG_PACKAGE_microsocks=y" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-tproxy=y" >> .config
-          echo "CONFIG_PACKAGE_iptables-mod-extra=y" >> .config
-          echo "CONFIG_PACKAGE_ipset=y" >> .config
-          echo "CONFIG_PACKAGE_libopenssl=y" >> .config
-          echo "CONFIG_PACKAGE_luci-i18n-passwall-zh-cn=y" >> .config
+          make oldconfig
 
       - name: Download package
         working-directory: /workdir/openwrt
