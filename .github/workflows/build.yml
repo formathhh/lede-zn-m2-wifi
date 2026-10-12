@@ -47,6 +47,16 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: Fix dependencies
+        working-directory: /workdir/openwrt
+        run: |
+          # 补上缺失的依赖
+          echo "CONFIG_PACKAGE_ddns-scripts=y" >> .config
+          echo "CONFIG_PACKAGE_wget-ssl=y" >> .config
+          echo "CONFIG_PACKAGE_luci-compat=y" >> .config
+          # 确认已加上
+          grep -E "CONFIG_PACKAGE_(ddns-scripts|wget-ssl|luci-compat)=" .config
+
       - name: Verify config
         working-directory: /workdir/openwrt
         run: |
