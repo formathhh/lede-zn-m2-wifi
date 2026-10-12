@@ -47,23 +47,19 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Load custom config
+      - name: Verify config
         working-directory: /workdir/openwrt
         run: |
-          # 关键改动：用仓库里的 .config 覆盖源码默认配置
-          cp .config .config.bak
-          cp .config openwrt.config
-          # 用 defconfig 强制以你的 .config 为准生成配置
-          make defconfig
-          # 打印关键项，方便在日志里核对
-          echo "===== 检查配置项 ====="
-          grep -E "CONFIG_PACKAGE_luci-app-(passwall|zerotier|pgyvpn|turboacc|ssr-plus)" .config || true
-          grep -E "CONFIG_DEFAULT_luci-app-ssr-plus" .config || true
+          echo "===== 关键配置检查 ====="
+          grep -c "luci-app-passwall" .config || true
+          grep "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_cmiot_ax18" .config || true
+          grep "CONFIG_PACKAGE_xray-core" .config || true
+          grep "CONFIG_PACKAGE_sing-box" .config || true
 
       - name: Download package
         working-directory: /workdir/openwrt
         run: |
-          make -j8 download V=s
+          make -j8 download V=s || make -j8 download V=s
 
       - name: Compile the firmware
         working-directory: /workdir/openwrt
@@ -76,8 +72,7 @@ jobs:
           echo "===== passwall 检查 ====="
           grep -c "luci-app-passwall" .config || true
           ls bin/targets/qualcommax/ipq60xx/packages/ | grep -i passwall || echo "PASSWALL IPK NOT FOUND"
-          echo "===== ssr-plus 检查（应尽量不出现）====="
-          ls bin/targets/qualcommax/ipq60xx/packages/ | grep -i ssr-plus || echo "SSR-PLUS IPK NOT FOUND"
+          ls bin/targets/qualcommax/ipq60xx/packages/ | grep -i xray || echo "XRAY IPK NOT FOUND"
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
