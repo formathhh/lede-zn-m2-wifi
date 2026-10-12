@@ -47,24 +47,39 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Fix dependencies
+      - name: Check feeds
         working-directory: /workdir/openwrt
         run: |
-          # 补上缺失的依赖
-          echo "CONFIG_PACKAGE_ddns-scripts=y" >> .config
-          echo "CONFIG_PACKAGE_wget-ssl=y" >> .config
-          echo "CONFIG_PACKAGE_luci-compat=y" >> .config
-          # 确认已加上
-          grep -E "CONFIG_PACKAGE_(ddns-scripts|wget-ssl|luci-compat)=" .config
+          echo "===== ddns-scripts 相关 ====="
+          ls -d package/feeds/packages/ddns-scripts* 2>/dev/null || echo "ddns-scripts NOT FOUND"
+          echo "===== luci-lua-runtime 相关 ====="
+          find package/feeds/luci -maxdepth 2 -iname "*lua-runtime*" 2>/dev/null || echo "luci-lua-runtime NOT FOUND"
+          echo "===== passwall 相关 ====="
+          ls -d package/feeds/*/luci-app-passwall 2>/dev/null || echo "luci-app-passwall NOT FOUND"
 
-      - name: Verify config
+      - name: Load custom .config
         working-directory: /workdir/openwrt
         run: |
-          echo "===== 关键配置检查 ====="
-          grep -c "luci-app-passwall" .config || true
-          grep "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_cmiot_ax18" .config || true
-          grep "CONFIG_PACKAGE_xray-core" .config || true
-          grep "CONFIG_PACKAGE_sing-box" .config || true
+          # 关键：确认仓库里的 .config 真的被 clone 下来了
+          if [ ! -f .config ]; then
+            echo "ERROR: 仓库里没有 .config，自选配置不会生效！"
+            exit 1
+          fi
+          echo "===== 仓库 .config 行数 ====="
+          wc -l .config
+          echo "===== 自选项预检 ====="
+          grep -E "luci-app-passwall|xray-core|sing-box|cmiot_ax18" .config || true
+
+      - name: Configure
+        working-directory: /workdir/openwrt
+        run: |
+          # 用仓库 .config 生成自洽配置，不要 append
+          make defconfig
+          echo "===== defconfig 后关键项 ====="
+          grep -E "CONFIG_TARGET_qualcommax_ipq60xx_DEVICE_cmiot_ax18" .config || echo "TARGET MISSING"
+          grep -c "CONFIG_PACKAGE_luci-app-passwall=y" .config || true
+          grep -E "CONFIG_PACKAGE_xray-core" .config || true
+          grep -E "CONFIG_PACKAGE_sing-box" .config || true
 
       - name: Download package
         working-directory: /workdir/openwrt
